@@ -293,6 +293,31 @@
             }
         }
 
+        // localStorage 功能
+        function saveIdToLocalStorage() {
+            const id = document.getElementById('contentId').value.trim();
+            if (id) {
+                localStorage.setItem('clipboard-shortcuts-id', id);
+            }
+        }
+
+        function loadIdFromLocalStorage() {
+            const savedId = localStorage.getItem('clipboard-shortcuts-id');
+            if (savedId) {
+                document.getElementById('contentId').value = savedId;
+            }
+        }
+
+        // 页面加载时恢复保存的 ID
+        document.addEventListener('DOMContentLoaded', function() {
+            loadIdFromLocalStorage();
+        });
+
+        // ID 输入框变化时保存到 localStorage
+        document.getElementById('contentId').addEventListener('input', function(e) {
+            saveIdToLocalStorage();
+        });
+
         // 回车键快捷操作
         document.getElementById('contentId').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
