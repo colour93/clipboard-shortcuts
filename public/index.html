@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>内容存储系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-left: 5px solid #4caf50;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-left: 5px solid #f44336;
+        }
+
+        .result h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .result p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>内容存储系统</h1>
+        
+        <div class="form-group">
+            <label for="contentId">ID:</label>
+            <input type="text" id="contentId" placeholder="请输入唯一标识符">
+        </div>
+        
+        <div class="form-group">
+            <label for="contentText">内容:</label>
+            <textarea id="contentText" placeholder="请输入要存储的内容"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="sendContent()">发送内容</button>
+            <button class="btn-secondary" onclick="queryContent()">查询内容</button>
+        </div>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>处理中...</p>
+        </div>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function showLoading() {
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading').style.display = 'none';
+        }
+
+        function showResult(content, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = content;
+            resultDiv.style.display = 'block';
+        }
+
+        async function sendContent() {
+            const id = document.getElementById('contentId').value.trim();
+            const content = document.getElementById('contentText').value.trim();
+            
+            if (!id || !content) {
+                showResult('<h3>错误</h3><p>请填写 ID 和内容</p>', false);
+                return;
+            }
+
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id, content })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`
+                        <h3>发送成功！</h3>
+                        <p><strong>ID:</strong> ${data.data.id}</p>
+                        <p><strong>内容:</strong> ${data.data.content}</p>
+                        <p><strong>时间:</strong> ${new Date(data.data.timestamp).toLocaleString('zh-CN')}</p>
+                    `);
+                    
+                    // 清空输入框
+                    document.getElementById('contentText').value = '';
+                } else {
+                    showResult(`<h3>发送失败</h3><p>${data.error}</p>`, false);
+                }
+            } catch (error) {
+                showResult(`<h3>网络错误</h3><p>请检查网络连接</p>`, false);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function queryContent() {
+            const id = document.getElementById('contentId').value.trim();
+            
+            if (!id) {
+                showResult('<h3>错误</h3><p>请输入要查询的 ID</p>', false);
+                return;
+            }
+
+            showLoading();
+            
+            try {
+                const response = await fetch(`/api/content/${encodeURIComponent(id)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`
+                        <h3>查询成功！</h3>
+                        <p><strong>ID:</strong> ${data.data.id}</p>
+                        <p><strong>内容:</strong> ${data.data.content}</p>
+                        <p><strong>发送时间:</strong> ${new Date(data.data.timestamp).toLocaleString('zh-CN')}</p>
+                    `);
+                    
+                    // 将查询到的内容填入文本框
+                    document.getElementById('contentText').value = data.data.content;
+                } else {
+                    showResult(`<h3>查询失败</h3><p>${data.error}</p>`, false);
+                }
+            } catch (error) {
+                showResult(`<h3>网络错误</h3><p>请检查网络连接</p>`, false);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 回车键快捷操作
+        document.getElementById('contentId').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                queryContent();
+            }
+        });
+
+        document.getElementById('contentText').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                sendContent();
+            }
+        });
+    </script>
+</body>
+</html>
